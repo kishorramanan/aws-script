@@ -20,40 +20,78 @@ if [ $# -ne 2 ] ; then
   exit 1
 fi
 
+#ALB Name CHECK
+CHK_ALB_NAME=`$AWSCLI --profile $PROFILE \
+	elbv2 describe-load-balancers \
+	--name=$ALB_NAME \
+	--query 'LoadBalancers[].[LoadBalancerName]'\
+	--output text \
+	`
+
+if [ -z $CHK_ALB_NAME ] ; then
+  echo "ALB Name \"$ALB_NAME\" is not found"
+  exit 1
+fi
+
 #Get ALB ARN
 GET_ALB_ARN=`$AWSCLI --profile $PROFILE \
 	elbv2 describe-load-balancers \
-	--query 'LoadBalancers[].[LoadBalancerName,LoadBalancerArn]' \
+	--name=$ALB_NAME \
+	--query 'LoadBalancers[].[LoadBalancerArn]' \
 	--output text \
-	| grep "^$ALB_NAME\s" \
-	| cut -f2 \
 	`
 #echo GET_ALB_ARN
 #echo $GET_ALB_ARN
 
-#Get Target GROUP
-GET_TARTGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
+#Get Listner ARN
+GET_LISTER_ARN=`$AWSCLI --profile $PROFILE \
 	elbv2 describe-listeners \
-	--load-balancer-arn $GET_ALB_ARN \
-	--query 'Listeners[].DefaultActions[].TargetGroupArn' \
+	--load-balancer-arn=$GET_ALB_ARN \
+	--query 'Listeners[].ListenerArn' \
+	--output text \
+	`
+
+#echo GET_LISTER_ARN
+#echo $GET_LISTER_ARN
+
+#GET_TARTGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
+#	elbv2 describe-rules \
+#	--listener-arn $GET_LISTER_ARN \
+#	--query 'Rules[].Actions[].TargetGroupArn' \
+#	--output text \
+#	`
+
+GET_PRIORITY_TARTGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
+	elbv2 describe-rules \
+	--listener-arn $GET_LISTER_ARN \
+	--query 'Rules[].[Priority,Actions[].TargetGroupArn]' \
 	--output text \
 	`
 
     echo "- ALB NAME \"$ALB_NAME\" "
-#echo GET_TARTGET_GROUP_ARN
-#echo $GET_TARTGET_GROUP_ARN
 
 #Target Group host list get
-for TARTGET_GROUP_ARN in ${GET_TARTGET_GROUP_ARN[@]}
+for VALUE in ${GET_PRIORITY_TARTGET_GROUP_ARN[@]}
 do
-  #Target Group name
-  TARGET_GROUP_NAME=`sed 's%^.*:.*/\(.*\)\.*/.*%\1%' <<< $TARTGET_GROUP_ARN`
 
+  #PRIORYTY or ARN CHECK
+  if [[ "$VALUE" =~ ^arn* ]]; then
+    TARTGET_GROUP_ARN=$VALUE
+
+  else
+    PRIORITY=$VALUE
+    continue
+  fi
+
+    #Target Group name
+    TARGET_GROUP_NAME=`sed 's%^.*:.*/\(.*\)\.*/.*%\1%' <<< $TARTGET_GROUP_ARN`
 
     #表示タイトル
     echo "-- ALB TARGET GROUP \"$TARGET_GROUP_NAME\" INSTANCE HEALTH STATUS( name , id , status) "
+    echo "-- PRIORITY : $PRIORITY "
+
 #echo TARGET_GEOUP_NAME
-#echo $TARGET_GEOUP_NAME
+#echo $TARGET_GROUP_NAME
 
     #スペース、改行でも区切られないように
     IFS_BACKUP=$IFS
@@ -62,7 +100,7 @@ do
     #Target Group instance Tag Name Get
     for INSTANCE in `$AWSCLI --profile $PROFILE \
 	elbv2 describe-target-health \
-	--target-group-arn $GET_TARTGET_GROUP_ARN \
+	--target-group-arn $TARTGET_GROUP_ARN \
 	--query 'TargetHealthDescriptions[].[Target.Id,TargetHealth.State]' \
 	--output text \
 	`
@@ -77,16 +115,6 @@ do
 	--query "Tags[].Value" \
 	--output text \
 	`
-
-#echo INSTANCE
-#echo $INSTANCE
-#echo ID
-#echo $INSTANCE_ID
-#echo STATE
-#echo $INSTANCE_STATE
-#echo NAME
-#echo $INSTANCE_NAME
-
     #各表示
     echo "$INSTANCE_NAME , $INSTANCE_ID , $INSTANCE_STATE"
 
