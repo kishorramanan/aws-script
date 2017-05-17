@@ -1,5 +1,7 @@
 # aws-script
 
+`awscli`をインストールしている前提。
+
 ## alb 
 
 * aws_alb_healthcheck.sh
