@@ -12,9 +12,9 @@ INSTANCE_NAME=$3
 #COMAND
 AWSCLI="/usr/bin/aws"
 
-echo $PROFILE
-echo $TARGET_GROUP_NAME
-echo $INSTANCE_NAME
+#echo $PROFILE
+#echo $TARGET_GROUP_NAME
+#echo $INSTANCE_NAME
 
 #CHECK
 if [ $# -ne 3 ] ; then
@@ -26,13 +26,12 @@ fi
 #Get Target Group ARN
 TARGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
 	elbv2 describe-target-groups \
-	--query 'TargetGroups[].[TargetGroupName,TargetGroupArn]' \
+	--names=$TARGET_GROUP_NAME \
+	--query 'TargetGroups[].TargetGroupArn' \
 	--output text \
-	| grep "^$TARGET_GROUP_NAME\s" \
-	| cut -f2 \
 	`
-echo Targer Group Name
-echo $TARGET_GROUP_ARN
+#echo Targer Group Name
+#echo $TARGET_GROUP_ARN
 
 #Targer Group Name がない場合エラー
 if [ -z $TARGET_GROUP_ARN ] ; then
@@ -58,8 +57,38 @@ if [ -z $TARGET_INSTANCE_ID ] ; then
     exit 1
 fi
 
-echo TARGET_INSTANCE_ID
-echo $TARGET_INSTANCE_ID
+#echo TARGET_INSTANCE_ID
+#echo $TARGET_INSTANCE_ID
+
+#status healthの台数チェック
+HEALTH_STATE_CHECK=`$AWSCLI --profile $PROFILE \
+	elbv2 describe-target-health \
+	--target-group-arn=$TARGET_GROUP_ARN \
+	--query='TargetHealthDescriptions[].TargetHealth[].State' \
+	--output text \
+	`
+
+#echo HEALTH_STATE_CHECK
+#echo $HEALTH_STATE_CHECK
+
+COUNT_CHK=0
+
+#Target Group host list get
+for STATUS in ${HEALTH_STATE_CHECK[@]}
+do
+  #healthy CHECK
+  if [[ "$STATUS" =~ ^healthy ]]; then
+    COUNT_CHK=$(( COUNT_CHK + 1 ))
+  fi
+
+done
+
+#1個以下だったら終了
+if [[ $COUNT_CHK -le 1 ]]; then
+  echo "STOP!! Healthy Status Instance is Only One!"
+
+  exit 1
+fi
 
 #Taget Groupから削除
 DEREGISTER_RES=`$AWSCLI --profile $PROFILE \
