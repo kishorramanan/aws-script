@@ -12,10 +12,6 @@ INSTANCE_NAME=$3
 #COMAND
 AWSCLI="/usr/bin/aws"
 
-#echo $PROFILE
-#echo $TARGET_GROUP_NAME
-#echo $INSTANCE_NAME
-
 #CHECK
 if [ $# -ne 3 ] ; then
   echo "Missing Argument"
@@ -31,8 +27,6 @@ TARGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
 	| grep "^$TARGET_GROUP_NAME\s" \
 	| cut -f2 \
 	`
-#echo Targer Group Name
-#echo $TARGET_GROUP_ARN
 
 #Targer Group Name がない場合エラー
 if [ -z $TARGET_GROUP_ARN ] ; then
@@ -58,9 +52,6 @@ if [ -z $TARGET_INSTANCE_ID ] ; then
     exit 1
 fi
 
-#echo TARGET_INSTANCE_ID
-#echo $TARGET_INSTANCE_ID
-
 #Taget Groupから投入
 REGISTER_RES=`$AWSCLI --profile $PROFILE \
 	elbv2 register-targets \
@@ -68,8 +59,5 @@ REGISTER_RES=`$AWSCLI --profile $PROFILE \
 	--targets Id=$TARGET_INSTANCE_ID \
 	`
 
-#echo $REGISTER_RES
-
 exit 0
-
 

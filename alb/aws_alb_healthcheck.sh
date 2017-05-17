@@ -10,9 +10,6 @@ ALB_NAME=$2
 #COMAND
 AWSCLI="/usr/bin/aws"
 
-#echo $PROFILE
-#echo $ALB_NAME
-
 #CHECK
 if [ $# -ne 2 ] ; then
   echo "Missing Argument"
@@ -40,9 +37,6 @@ GET_ALB_ARN=`$AWSCLI --profile $PROFILE \
 	--query 'LoadBalancers[].[LoadBalancerArn]' \
 	--output text \
 	`
-#echo GET_ALB_ARN
-#echo $GET_ALB_ARN
-
 #Get Listner ARN
 GET_LISTER_ARN=`$AWSCLI --profile $PROFILE \
 	elbv2 describe-listeners \
@@ -50,16 +44,6 @@ GET_LISTER_ARN=`$AWSCLI --profile $PROFILE \
 	--query 'Listeners[].ListenerArn' \
 	--output text \
 	`
-
-#echo GET_LISTER_ARN
-#echo $GET_LISTER_ARN
-
-#GET_TARTGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
-#	elbv2 describe-rules \
-#	--listener-arn $GET_LISTER_ARN \
-#	--query 'Rules[].Actions[].TargetGroupArn' \
-#	--output text \
-#	`
 
 GET_PRIORITY_TARTGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
 	elbv2 describe-rules \
@@ -89,9 +73,6 @@ do
     #表示タイトル
     echo "-- ALB TARGET GROUP \"$TARGET_GROUP_NAME\" INSTANCE HEALTH STATUS( name , id , status) "
     echo "-- PRIORITY : $PRIORITY "
-
-#echo TARGET_GEOUP_NAME
-#echo $TARGET_GROUP_NAME
 
     #スペース、改行でも区切られないように
     IFS_BACKUP=$IFS

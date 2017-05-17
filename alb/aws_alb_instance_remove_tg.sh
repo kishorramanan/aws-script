@@ -12,10 +12,6 @@ INSTANCE_NAME=$3
 #COMAND
 AWSCLI="/usr/bin/aws"
 
-#echo $PROFILE
-#echo $TARGET_GROUP_NAME
-#echo $INSTANCE_NAME
-
 #CHECK
 if [ $# -ne 3 ] ; then
   echo "Missing Argument"
@@ -30,8 +26,6 @@ TARGET_GROUP_ARN=`$AWSCLI --profile $PROFILE \
 	--query 'TargetGroups[].TargetGroupArn' \
 	--output text \
 	`
-#echo Targer Group Name
-#echo $TARGET_GROUP_ARN
 
 #Targer Group Name がない場合エラー
 if [ -z $TARGET_GROUP_ARN ] ; then
@@ -57,9 +51,6 @@ if [ -z $TARGET_INSTANCE_ID ] ; then
     exit 1
 fi
 
-#echo TARGET_INSTANCE_ID
-#echo $TARGET_INSTANCE_ID
-
 #status healthの台数チェック
 HEALTH_STATE_CHECK=`$AWSCLI --profile $PROFILE \
 	elbv2 describe-target-health \
@@ -68,12 +59,9 @@ HEALTH_STATE_CHECK=`$AWSCLI --profile $PROFILE \
 	--output text \
 	`
 
-#echo HEALTH_STATE_CHECK
-#echo $HEALTH_STATE_CHECK
-
+#Target Group host list get
 COUNT_CHK=0
 
-#Target Group host list get
 for STATUS in ${HEALTH_STATE_CHECK[@]}
 do
   #healthy CHECK
@@ -96,8 +84,5 @@ DEREGISTER_RES=`$AWSCLI --profile $PROFILE \
 	--target-group-arn $TARGET_GROUP_ARN \
 	--targets Id=$TARGET_INSTANCE_ID \
 	`
-#echo $DEREGISTER_RES
-
 exit 0
-
 
